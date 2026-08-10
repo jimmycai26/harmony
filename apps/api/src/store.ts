@@ -5,6 +5,7 @@ import { pickFourModels } from './mockModels';
 import type {
   AxisKey,
   Battle,
+  BattleStage,
   Generation,
   GenerationEvent,
   Genre,
@@ -31,36 +32,39 @@ export interface PublicBattleResult extends PublicBattle {
   overall: Pick;
   axisPicks: Record<string, Pick>;
   winnerTrackId: string;
+  loserTrackId: string;
+}
+
+export interface PublicPlacementEntry {
+  track: { id: string; letter: Letter };
+  model: { id: string; name: string };
+}
+
+export interface PublicPlacement {
+  first: PublicPlacementEntry;
+  second: PublicPlacementEntry;
+  third: PublicPlacementEntry;
+  fourth: PublicPlacementEntry;
 }
 
 export type RecordVoteResult =
   | {
       ok: true;
       generationId: string;
-      ladderComplete: false;
       completedBattle: PublicBattleResult;
-      nextBattle: PublicBattle;
-    }
-  | {
-      ok: true;
-      generationId: string;
-      ladderComplete: true;
-      completedBattle: PublicBattleResult;
-      winner: { trackId: string; letter: Letter };
+      /** Newly-votable battles unlocked by this vote (0, 1, or 2). */
+      unlockedBattles: PublicBattle[];
+      bracketComplete: boolean;
+      placement?: PublicPlacement;
     }
   | { ok: false; reason: 'not_found' }
   | { ok: false; reason: 'already_complete' }
   | { ok: false; reason: 'invalid_axes'; expected: AxisKey[] };
 
 export type RevealResult =
-  | {
-      ok: true;
-      generationId: string;
-      winningTrack: { id: string; letter: Letter };
-      model: { id: string; name: string };
-    }
+  | { ok: true; generationId: string; placement: PublicPlacement }
   | { ok: false; reason: 'not_found' }
-  | { ok: false; reason: 'ladder_incomplete' };
+  | { ok: false; reason: 'bracket_incomplete' };
 
 export interface LayersResult {
   trackId: string;
@@ -79,6 +83,8 @@ export interface GenerationStore {
     id: string,
     listener: (event: GenerationEvent) => void,
   ): (() => void) | undefined;
+  /** Battles currently open for voting (used to replay state to a late/reconnecting SSE client). */
+  getOpenBattles(generationId: string): PublicBattle[] | undefined;
   recordVote(battleId: string, input: RecordVoteInput): RecordVoteResult;
   getLayers(trackId: string): LayersResult | undefined;
   getReveal(generationId: string): RevealResult;
@@ -109,6 +115,10 @@ export class InMemoryGenerationStore implements GenerationStore {
 
   createGeneration(input: CreateGenerationInput): Generation {
     const id = randomUUID();
+    // pickFourModels() both selects the 4 competing models AND randomizes
+    // their order — that order becomes the bracket seeding below (which
+    // model lands in slot A/B/C/D, and therefore who faces whom in the
+    // semifinals), so seeding is random on every generation.
     const models = pickFourModels();
     const letters: Letter[] = ['A', 'B', 'C', 'D'];
     const tracks: Track[] = letters.map((letter, i) => ({
@@ -159,6 +169,14 @@ export class InMemoryGenerationStore implements GenerationStore {
     return () => emitter.off('event', listener);
   }
 
+  getOpenBattles(generationId: string): PublicBattle[] | undefined {
+    const generation = this.generations.get(generationId);
+    if (!generation) return undefined;
+    return generation.battles
+      .filter((b) => b.status === 'pending')
+      .map((b) => this.toPublicBattle(generation, b));
+  }
+
   recordVote(battleId: string, input: RecordVoteInput): RecordVoteResult {
     const generationId = this.battleIndex.get(battleId);
     if (!generationId) return { ok: false, reason: 'not_found' };
@@ -179,49 +197,69 @@ export class InMemoryGenerationStore implements GenerationStore {
       return { ok: false, reason: 'invalid_axes', expected: expectedAxes };
     }
 
-    // A tie doesn't dethrone the incumbent: the left-hand track (the
-    // reigning champion in every round after the first) keeps the win.
+    // A tie doesn't dethrone the left-hand track — see README for why.
     const winnerTrackId = input.overall === 'right' ? battle.rightTrackId : battle.leftTrackId;
+    const loserTrackId = winnerTrackId === battle.leftTrackId ? battle.rightTrackId : battle.leftTrackId;
 
     battle.status = 'complete';
     battle.overall = input.overall;
     battle.axisPicks = Object.fromEntries(expectedAxes.map((key) => [key, input.axes[key]]));
     battle.winnerTrackId = winnerTrackId;
+    battle.loserTrackId = loserTrackId;
 
     const completedBattle: PublicBattleResult = {
       ...this.toPublicBattle(generation, battle),
       overall: battle.overall,
       axisPicks: battle.axisPicks as Record<string, Pick>,
       winnerTrackId,
+      loserTrackId,
     };
 
-    if (battle.round === 3) {
-      generation.status = 'complete';
-      generation.winnerTrackId = winnerTrackId;
-      generation.currentBattleId = undefined;
-      const winnerTrack = generation.tracks.find((t) => t.id === winnerTrackId)!;
-      return {
-        ok: true,
-        generationId,
-        ladderComplete: true,
-        completedBattle,
-        winner: { trackId: winnerTrack.id, letter: winnerTrack.letter },
-      };
-    }
+    const unlockedBattles: PublicBattle[] = [];
+    let bracketComplete = false;
 
-    const nextRound = (battle.round + 1) as 2 | 3;
-    // Round 1 seeds tracks[0] vs tracks[1]; the winner of round R then
-    // faces tracks[R+1] (i.e. tracks[nextRound]) as the next challenger.
-    const nextChallenger = generation.tracks[nextRound];
-    const nextBattleRecord = this.createBattle(generation, nextRound, winnerTrackId, nextChallenger.id);
-    generation.currentBattleId = nextBattleRecord.id;
+    if (battle.stage === 'semifinal') {
+      const sibling = generation.battles.find((b) => b.stage === 'semifinal' && b.id !== battle.id)!;
+      if (sibling.status === 'complete') {
+        // Both semifinals are done: seed the winners' final and the
+        // losers' consolation match (3rd/4th place) at the same time.
+        const semi1 = generation.battles.find((b) => b.stage === 'semifinal' && b.slot === 1)!;
+        const semi2 = generation.battles.find((b) => b.stage === 'semifinal' && b.slot === 2)!;
+        const final = this.createBattle(generation, 'final', undefined, semi1.winnerTrackId!, semi2.winnerTrackId!);
+        const consolation = this.createBattle(
+          generation,
+          'consolation',
+          undefined,
+          semi1.loserTrackId!,
+          semi2.loserTrackId!,
+        );
+        unlockedBattles.push(this.toPublicBattle(generation, final), this.toPublicBattle(generation, consolation));
+      }
+    } else {
+      const counterpart = generation.battles.find(
+        (b) => b.stage === (battle.stage === 'final' ? 'consolation' : 'final'),
+      );
+      if (counterpart?.status === 'complete') {
+        const final = generation.battles.find((b) => b.stage === 'final')!;
+        const consolation = generation.battles.find((b) => b.stage === 'consolation')!;
+        generation.status = 'complete';
+        generation.placement = {
+          first: final.winnerTrackId!,
+          second: final.loserTrackId!,
+          third: consolation.winnerTrackId!,
+          fourth: consolation.loserTrackId!,
+        };
+        bracketComplete = true;
+      }
+    }
 
     return {
       ok: true,
       generationId,
-      ladderComplete: false,
       completedBattle,
-      nextBattle: this.toPublicBattle(generation, nextBattleRecord),
+      unlockedBattles,
+      bracketComplete,
+      placement: bracketComplete ? this.toPublicPlacement(generation) : undefined,
     };
   }
 
@@ -241,17 +279,11 @@ export class InMemoryGenerationStore implements GenerationStore {
   getReveal(generationId: string): RevealResult {
     const generation = this.generations.get(generationId);
     if (!generation) return { ok: false, reason: 'not_found' };
-    if (generation.status !== 'complete' || !generation.winnerTrackId) {
-      return { ok: false, reason: 'ladder_incomplete' };
+    if (generation.status !== 'complete' || !generation.placement) {
+      return { ok: false, reason: 'bracket_incomplete' };
     }
 
-    const winningTrack = generation.tracks.find((t) => t.id === generation.winnerTrackId)!;
-    return {
-      ok: true,
-      generationId,
-      winningTrack: { id: winningTrack.id, letter: winningTrack.letter },
-      model: { id: winningTrack.model.id, name: winningTrack.model.name },
-    };
+    return { ok: true, generationId, placement: this.toPublicPlacement(generation) };
   }
 
   private markTrackReady(generationId: string, trackId: string): void {
@@ -275,23 +307,31 @@ export class InMemoryGenerationStore implements GenerationStore {
 
     if (generation.tracks.every((t) => t.status === 'ready')) {
       generation.status = 'battling';
-      const battle = this.createBattle(generation, 1, generation.tracks[0].id, generation.tracks[1].id);
-      generation.currentBattleId = battle.id;
+      const [a, b, c, d] = generation.tracks;
+      const semi1 = this.createBattle(generation, 'semifinal', 1, a.id, b.id);
+      const semi2 = this.createBattle(generation, 'semifinal', 2, c.id, d.id);
 
       emitter?.emit('event', {
         type: 'all-ready',
         generationId,
         tracks: generation.tracks.map((t) => ({ id: t.id, letter: t.letter })),
-        firstBattle: this.toPublicBattle(generation, battle),
+        openBattles: [this.toPublicBattle(generation, semi1), this.toPublicBattle(generation, semi2)],
       } satisfies GenerationEvent);
     }
   }
 
-  private createBattle(generation: Generation, round: 1 | 2 | 3, leftTrackId: string, rightTrackId: string): Battle {
+  private createBattle(
+    generation: Generation,
+    stage: BattleStage,
+    slot: 1 | 2 | undefined,
+    leftTrackId: string,
+    rightTrackId: string,
+  ): Battle {
     const battle: Battle = {
       id: randomUUID(),
       generationId: generation.id,
-      round,
+      stage,
+      slot,
       leftTrackId,
       rightTrackId,
       status: 'pending',
@@ -306,10 +346,25 @@ export class InMemoryGenerationStore implements GenerationStore {
     const right = generation.tracks.find((t) => t.id === battle.rightTrackId)!;
     return {
       id: battle.id,
-      round: battle.round,
+      stage: battle.stage,
+      slot: battle.slot,
       left: { trackId: left.id, letter: left.letter },
       right: { trackId: right.id, letter: right.letter },
       axes: generation.axes.map((key) => ({ key, label: AXIS_LABELS[key] })),
+    };
+  }
+
+  private toPublicPlacement(generation: Generation): PublicPlacement {
+    const placement = generation.placement!;
+    const entry = (trackId: string): PublicPlacementEntry => {
+      const track = generation.tracks.find((t) => t.id === trackId)!;
+      return { track: { id: track.id, letter: track.letter }, model: { id: track.model.id, name: track.model.name } };
+    };
+    return {
+      first: entry(placement.first),
+      second: entry(placement.second),
+      third: entry(placement.third),
+      fourth: entry(placement.fourth),
     };
   }
 }

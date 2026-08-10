@@ -27,16 +27,34 @@ export interface Track {
   model: MockModel;
 }
 
+/**
+ * 4-battle bracket: two semifinals run in parallel (slot 1 = A vs B, slot 2
+ * = C vs D), then the two semifinal winners meet in the final (1st/2nd
+ * place) and the two semifinal losers meet in the consolation match
+ * (3rd/4th place) — also run in parallel once both semifinals are done.
+ */
+export type BattleStage = 'semifinal' | 'final' | 'consolation';
+
 export interface Battle {
   id: string;
   generationId: string;
-  round: 1 | 2 | 3;
+  stage: BattleStage;
+  /** Which semifinal this is (1 or 2); undefined for final/consolation. */
+  slot?: 1 | 2;
   leftTrackId: string;
   rightTrackId: string;
   status: 'pending' | 'complete';
   overall?: Pick;
   axisPicks?: Partial<Record<AxisKey, Pick>>;
   winnerTrackId?: string;
+  loserTrackId?: string;
+}
+
+export interface Placement {
+  first: string;
+  second: string;
+  third: string;
+  fourth: string;
 }
 
 export interface Generation {
@@ -49,13 +67,14 @@ export interface Generation {
   axes: AxisKey[];
   status: 'generating' | 'battling' | 'complete';
   battles: Battle[];
-  currentBattleId?: string;
-  winnerTrackId?: string;
+  /** Track ids ranked 1st-4th; set once both the final and consolation are voted. */
+  placement?: Placement;
 }
 
 export interface PublicBattle {
   id: string;
-  round: 1 | 2 | 3;
+  stage: BattleStage;
+  slot?: 1 | 2;
   left: { trackId: string; letter: Letter };
   right: { trackId: string; letter: Letter };
   axes: { key: AxisKey; label: string }[];
@@ -67,5 +86,6 @@ export type GenerationEvent =
       type: 'all-ready';
       generationId: string;
       tracks: { id: string; letter: Letter }[];
-      firstBattle: PublicBattle;
+      /** Both semifinals — open and votable as soon as generation finishes. */
+      openBattles: PublicBattle[];
     };

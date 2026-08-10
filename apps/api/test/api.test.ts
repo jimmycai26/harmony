@@ -23,8 +23,12 @@ function parseSse(payload: string): SseFrame[] {
     .filter((frame) => frame.event);
 }
 
+function voteAxes(battle: any, pick: 'left' | 'tie' | 'right') {
+  return Object.fromEntries(battle.axes.map((a: any) => [a.key, pick]));
+}
+
 describe('Harmony API', () => {
-  it('runs the full generate -> SSE -> ladder -> reveal -> layers flow', async () => {
+  it('runs the full generate -> SSE -> 4-battle bracket -> reveal -> layers flow', async () => {
     const store = new InMemoryGenerationStore({ trackDelayMs: { min: 10, max: 40 } });
     const app = buildApp({ store, logger: false });
 
@@ -46,42 +50,83 @@ describe('Harmony API', () => {
     const allReadyEvent = events.find((e) => e.event === 'all-ready');
     expect(trackReadyEvents).toHaveLength(4);
     expect(allReadyEvent).toBeTruthy();
-    expect(allReadyEvent!.data.firstBattle.round).toBe(1);
 
-    let battle = allReadyEvent!.data.firstBattle;
-    let round = 0;
-    let winner: { trackId: string; letter: string } | undefined;
+    const openBattles = allReadyEvent!.data.openBattles;
+    expect(openBattles).toHaveLength(2);
+    const semi1 = openBattles.find((b: any) => b.slot === 1);
+    const semi2 = openBattles.find((b: any) => b.slot === 2);
+    expect(semi1.stage).toBe('semifinal');
+    expect(semi2.stage).toBe('semifinal');
+    // Semi1 is A vs B, semi2 is C vs D.
+    expect([semi1.left.letter, semi1.right.letter].sort()).toEqual(['A', 'B']);
+    expect([semi2.left.letter, semi2.right.letter].sort()).toEqual(['C', 'D']);
 
-    while (!winner) {
-      const voteRes = await app.inject({
-        method: 'POST',
-        url: `/battles/${battle.id}/vote`,
-        payload: {
-          overall: 'left',
-          axes: Object.fromEntries(battle.axes.map((a: any) => [a.key, 'left'])),
-        },
-      });
-      expect(voteRes.statusCode).toBe(200);
-      const body = voteRes.json();
-      round += 1;
-      if (body.status === 'ladder_complete') {
-        winner = body.winner;
-      } else {
-        battle = body.nextBattle;
-      }
-    }
+    // Vote semi1: nothing unlocks yet, semi2 hasn't been voted on.
+    const semi1VoteRes = await app.inject({
+      method: 'POST',
+      url: `/battles/${semi1.id}/vote`,
+      payload: { overall: 'left', axes: voteAxes(semi1, 'left') },
+    });
+    expect(semi1VoteRes.statusCode).toBe(200);
+    const semi1Body = semi1VoteRes.json();
+    expect(semi1Body.status).toBe('battle_recorded');
+    expect(semi1Body.unlockedBattles).toHaveLength(0);
+    const semi1Winner = semi1Body.completedBattle.winnerTrackId;
+    const semi1Loser = semi1Body.completedBattle.loserTrackId;
 
-    expect(round).toBe(3);
-    // Left always wins here, so the round-1 left track (A) should be champion.
-    expect(winner!.letter).toBe('A');
+    // Vote semi2: this is the second semifinal to finish, so both the
+    // final and the consolation match unlock at once.
+    const semi2VoteRes = await app.inject({
+      method: 'POST',
+      url: `/battles/${semi2.id}/vote`,
+      payload: { overall: 'right', axes: voteAxes(semi2, 'right') },
+    });
+    expect(semi2VoteRes.statusCode).toBe(200);
+    const semi2Body = semi2VoteRes.json();
+    expect(semi2Body.unlockedBattles).toHaveLength(2);
+    const semi2Winner = semi2Body.completedBattle.winnerTrackId;
+    const semi2Loser = semi2Body.completedBattle.loserTrackId;
+
+    const final = semi2Body.unlockedBattles.find((b: any) => b.stage === 'final');
+    const consolation = semi2Body.unlockedBattles.find((b: any) => b.stage === 'consolation');
+    expect(final).toBeTruthy();
+    expect(consolation).toBeTruthy();
+    expect([final.left.trackId, final.right.trackId].sort()).toEqual([semi1Winner, semi2Winner].sort());
+    expect([consolation.left.trackId, consolation.right.trackId].sort()).toEqual(
+      [semi1Loser, semi2Loser].sort(),
+    );
+
+    // Vote the final: bracket isn't complete yet, consolation is still open.
+    const finalVoteRes = await app.inject({
+      method: 'POST',
+      url: `/battles/${final.id}/vote`,
+      payload: { overall: 'left', axes: voteAxes(final, 'left') },
+    });
+    const finalBody = finalVoteRes.json();
+    expect(finalBody.status).toBe('battle_recorded');
+
+    // Vote the consolation match: this is the last battle, bracket completes.
+    const consolationVoteRes = await app.inject({
+      method: 'POST',
+      url: `/battles/${consolation.id}/vote`,
+      payload: { overall: 'right', axes: voteAxes(consolation, 'right') },
+    });
+    expect(consolationVoteRes.statusCode).toBe(200);
+    const consolationBody = consolationVoteRes.json();
+    expect(consolationBody.status).toBe('bracket_complete');
+    const placement = consolationBody.placement;
+    expect(placement.first.track.id).toBe(finalBody.completedBattle.winnerTrackId);
+    expect(placement.second.track.id).toBe(finalBody.completedBattle.loserTrackId);
+    expect(placement.third.track.id).toBe(consolationBody.completedBattle.winnerTrackId);
+    expect(placement.fourth.track.id).toBe(consolationBody.completedBattle.loserTrackId);
 
     const revealRes = await app.inject({ method: 'GET', url: `/reveal/${generated.generationId}` });
     expect(revealRes.statusCode).toBe(200);
     const revealed = revealRes.json();
-    expect(revealed.winningTrack.id).toBe(winner!.trackId);
-    expect(revealed.model.name).toBeTruthy();
+    expect(revealed.placement.first.track.id).toBe(placement.first.track.id);
+    expect(revealed.placement.first.model.name).toBeTruthy();
 
-    const layersRes = await app.inject({ method: 'GET', url: `/layers/${winner!.trackId}` });
+    const layersRes = await app.inject({ method: 'GET', url: `/layers/${placement.first.track.id}` });
     expect(layersRes.statusCode).toBe(200);
     expect(layersRes.json().stems).toHaveLength(4);
 
@@ -112,7 +157,7 @@ describe('Harmony API', () => {
     await app.close();
   });
 
-  it('returns 409 on reveal before the ladder is complete, 404 for unknown ids', async () => {
+  it('returns 409 on reveal before the bracket is complete, 404 for unknown ids', async () => {
     const store = new InMemoryGenerationStore({ trackDelayMs: { min: 5, max: 10 } });
     const app = buildApp({ store, logger: false });
 
@@ -144,7 +189,7 @@ describe('Harmony API', () => {
     const generated = generateRes.json();
     const eventsRes = await app.inject({ method: 'GET', url: `/generate/${generated.generationId}/events` });
     const allReadyEvent = parseSse(eventsRes.payload).find((e) => e.event === 'all-ready')!;
-    const battle = allReadyEvent.data.firstBattle;
+    const battle = allReadyEvent.data.openBattles[0];
 
     const voteRes = await app.inject({
       method: 'POST',

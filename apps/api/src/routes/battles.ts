@@ -22,11 +22,11 @@ export function registerBattleRoutes(app: FastifyInstance, store: GenerationStor
       return reply.code(400).send({ error: 'invalid_axes', expectedAxes: result.expected });
     }
 
-    if (result.ladderComplete) {
+    if (result.bracketComplete) {
       return reply.send({
-        status: 'ladder_complete',
+        status: 'bracket_complete',
         completedBattle: result.completedBattle,
-        winner: result.winner,
+        placement: result.placement,
         revealUrl: `/reveal/${result.generationId}`,
       });
     }
@@ -34,7 +34,9 @@ export function registerBattleRoutes(app: FastifyInstance, store: GenerationStor
     return reply.send({
       status: 'battle_recorded',
       completedBattle: result.completedBattle,
-      nextBattle: result.nextBattle,
+      // 0 battles if the sibling semifinal (or final/consolation
+      // counterpart) hasn't been voted on yet, 2 once it unlocks.
+      unlockedBattles: result.unlockedBattles,
     });
   });
 }

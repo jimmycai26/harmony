@@ -65,26 +65,11 @@ export function registerGenerateRoutes(app: FastifyInstance, store: GenerationSt
     }
 
     if (generation.status !== 'generating') {
-      const firstBattle = generation.battles[0];
-      if (firstBattle) {
-        send('all-ready', {
-          generationId: generation.id,
-          tracks: generation.tracks.map((t) => ({ id: t.id, letter: t.letter })),
-          firstBattle: {
-            id: firstBattle.id,
-            round: firstBattle.round,
-            left: {
-              trackId: firstBattle.leftTrackId,
-              letter: generation.tracks.find((t) => t.id === firstBattle.leftTrackId)!.letter,
-            },
-            right: {
-              trackId: firstBattle.rightTrackId,
-              letter: generation.tracks.find((t) => t.id === firstBattle.rightTrackId)!.letter,
-            },
-            axes: generation.axes.map((key) => ({ key, label: AXIS_LABELS[key] })),
-          },
-        });
-      }
+      send('all-ready', {
+        generationId: generation.id,
+        tracks: generation.tracks.map((t) => ({ id: t.id, letter: t.letter })),
+        openBattles: store.getOpenBattles(id) ?? [],
+      });
       cleanup();
       return;
     }
@@ -96,7 +81,7 @@ export function registerGenerateRoutes(app: FastifyInstance, store: GenerationSt
         send('all-ready', {
           generationId: event.generationId,
           tracks: event.tracks,
-          firstBattle: event.firstBattle,
+          openBattles: event.openBattles,
         });
         cleanup();
       }

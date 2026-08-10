@@ -10,13 +10,12 @@ export function registerRevealRoutes(app: FastifyInstance, store: GenerationStor
       if (result.reason === 'not_found') {
         return reply.code(404).send({ error: 'not_found' });
       }
-      return reply.code(409).send({ error: 'ladder_incomplete' });
+      return reply.code(409).send({ error: 'bracket_incomplete' });
     }
 
     return reply.send({
       generationId: result.generationId,
-      winningTrack: result.winningTrack,
-      model: result.model,
+      placement: result.placement,
     });
   });
 }

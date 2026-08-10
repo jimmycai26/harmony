@@ -4,7 +4,7 @@ import type { MockModel } from './types';
  * ToS-clean v1 roster candidates named in PRD.md's technical-considerations
  * section. Real roster wiring (and actual audio generation) lands with
  * packages/models — this list only exists so the mock data layer has
- * something plausible to reveal at the end of the ladder.
+ * something plausible to reveal at the end of the bracket.
  */
 export const MODEL_ROSTER: MockModel[] = [
   { id: 'stable-audio-2-5', name: 'Stable Audio 2.5' },
