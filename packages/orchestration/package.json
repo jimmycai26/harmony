@@ -1,0 +1,33 @@
+{
+  "name": "@harmony/orchestration",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Inngest-based fan-out orchestration for Harmony's 4-model generation batches.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "dev": "tsx watch src/dev-server.ts",
+    "test": "node --import tsx --test src/__tests__/*.test.ts"
+  },
+  "dependencies": {
+    "inngest": "^4.18.0"
+  },
+  "devDependencies": {
+    "@inngest/test": "^1.0.0",
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
