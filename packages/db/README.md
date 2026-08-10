@@ -46,28 +46,39 @@ npm run db:seed
 
 ## Schema
 
-Five tables, mirroring the product flow in the repo-root `PRD.md`:
+Seven tables, mirroring the product flow in the repo-root `PRD.md`:
 
 - **`models`** — the model roster. Seeded (`src/seed.ts`) with 4 placeholder
   rows — Stable Audio, Lyria 2, ElevenLabs, MiniMax — **pending final roster
   decisions** (PRD.md flags 6 ToS-clean candidates with the v1 set as "a
   subset of 4, actively refined"). Swap the seed list, not the schema, when
-  the roster changes.
+  the roster changes. `currentVersion` is informational only (see "Model
+  versioning" below) — it is not the source of truth for what generated a
+  given historical track.
+- **`sessions`** — an anonymous browsing session, not a user account (PRD.md
+  lists real account/identity as unresolved). Exists purely so requests can
+  be grouped by "same person, same sitting" for the step-4 taste-profile bar
+  and for later individual preference analysis. If real auth lands later,
+  this table gains a nullable `userId` rather than being replaced.
 - **`generation_requests`** — one row per step-1 submission (prompt + scope
-  chip + genre chip). `sessionId` is a nullable free-text column standing in
-  for a future auth system (PRD.md lists account/identity as still open) so
-  anonymous taste-profile aggregation has something to group by.
+  chip + genre chip). `sessionId` is a nullable FK into `sessions`.
+  `generationParameters` is `jsonb` for request-level knobs beyond
+  scope/genre (target duration, BPM/key hints, ...) — free-form because the
+  knob set is expected to grow and isn't fixed enough to deserve columns yet.
 - **`tracks`** — one row per model output per request. Carries generation
   `status`, the object-storage pointer (`audioObjectKey` — the storage
   package owns the bucket/client, this is just the key), and the blind
-  `blindLabel` letter (A–D) shown to the listener before Reveal. Unique on
-  `(generationRequestId, modelId)` and `(generationRequestId, blindLabel)`.
-- **`battles`** — one row per 1v1 battle in the 3-round ladder (round 1 is
-  track 1 vs track 2; each subsequent round pits the winner against the next
-  challenger — never a 4-way pick, per PRD.md). Stores the overall
-  `result` (`left`/`tie`/`right`) plus a denormalized `winnerTrackId` FK so
-  aggregation can join straight to `tracks` → `models` without re-deriving
-  the winner. Unique on `(generationRequestId, round)`.
+  `blindLabel` letter (A–D) shown to the listener before Reveal.
+  `modelVersion` and `generationParameters` are a per-track *snapshot* of
+  what actually produced this track (see "Model versioning" below). Unique
+  on `(generationRequestId, modelId)` and `(generationRequestId, blindLabel)`.
+- **`battles`** — one row per 1v1 battle. The validated v1 UX is a strict
+  3-round ladder (round 1 is track 1 vs track 2; each subsequent round pits
+  the winner against the next challenger — never a 4-way pick, per PRD.md).
+  Stores the overall `result` (`left`/`tie`/`right`) plus a denormalized
+  `winnerTrackId` FK so aggregation can join straight to `tracks` → `models`
+  without re-deriving the winner. `(generationRequestId, round)` is indexed
+  but **not unique** — see "Comparison strategy" below for why.
 - **`battle_axis_votes`** — per-axis `left`/`tie`/`right` picks tied to a
   battle (vocals, bass/rhythm, production quality, etc). `axisKey` is
   **free text, not an enum** — the PRD is explicit that axes are computed
@@ -75,9 +86,46 @@ Five tables, mirroring the product flow in the repo-root `PRD.md`:
   instrumental-only request; genre-specific axes like "synth_work" for
   Electronic), so the axis catalog belongs to application logic, not a DB
   constraint. Unique on `(battleId, axisKey)`.
+- **`track_events`** — append-only behavioral log for a track (listens,
+  regenerates, saves, downloads). Explicit votes live in `battles` /
+  `battle_axis_votes`; this captures surrounding *implicit* signal (e.g.
+  "listened to B for only 4s before moving on"), which is useful context for
+  preference-data analysis even though nothing consumes it yet.
+  `eventType` is free text for the same reason `axisKey` is — the event
+  vocabulary is expected to grow from the frontend.
 
 `pick` (`left`/`tie`/`right`) is shared by `battles.result` and
 `battle_axis_votes.pick` — same judgment, different granularity.
+
+### Model versioning
+
+`models.currentVersion` says "what we currently point new generations at."
+It is **not** the historical record — if a model gets upgraded, old tracks
+must not silently get reinterpreted as having come from the new version.
+The actual source of truth is `tracks.modelVersion` (and
+`tracks.generationParameters` for the params actually used), captured as a
+snapshot at generation time. Aggregation/analysis that cares about model
+identity over time should read from `tracks`, never assume `models` reflects
+history.
+
+### Comparison strategy: ladder now, schema doesn't lock it in
+
+The validated v1 UX is a strict 3-round ladder — that's a product decision
+(PRD.md, informed by user testing), not something this package should
+dictate. Earlier this schema enforced "exactly one battle per round" with a
+unique constraint; that's been relaxed to a plain index. The ladder shape is
+still what the app produces today, but the schema no longer prevents a
+future adaptive/all-pairs comparison strategy (e.g. A-vs-B, A-vs-C, A-vs-D,
+B-vs-C, ...) without a migration, since that would only require inserting
+more `battles` rows, not a schema change.
+
+### Blind-label randomization is an app-layer responsibility
+
+`tracks.blindLabel` is just a column value set per request — nothing in the
+schema ties letter "A" to a particular model across requests. Preventing
+position/label bias (e.g. always giving Stable Audio the "A" slot) requires
+the orchestration/generation code to assign letters randomly per request;
+the DB only guarantees labels are unique *within* a request.
 
 ### Design decisions worth flagging
 
@@ -109,7 +157,15 @@ Five tables, mirroring the product flow in the repo-root `PRD.md`:
 - The Bradley-Terry aggregation/ranking computation itself (PRD.md flags this
   as a later concern) — this package only shapes the tables so it's
   computable later.
-- Auth/session system — `generationRequests.sessionId` is a placeholder
-  column, not a real session table.
+- Real auth/user accounts — `sessions` is deliberately anonymous; PRD.md
+  lists account/identity as unresolved.
 - Object storage — `tracks.audioObjectKey` is just a pointer; the storage
   package owns actual upload/retrieval.
+- **Splitting `models` into `models` + `model_deployments`** (e.g. same
+  underlying model reachable via Replicate, Fal, or self-hosted) — a
+  reasonable future direction, deliberately not done here because it
+  overlaps with how `packages/orchestration` will actually call these APIs,
+  which is being designed in parallel in a separate worktree. Adding a
+  deployment-routing table here risked guessing wrong about that shape;
+  better to add it once orchestration's needs are known. `models.provider`
+  stays a simple label for now.

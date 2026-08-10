@@ -1,4 +1,4 @@
-import { integer, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { integer, jsonb, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 import { trackStatusEnum } from "./enums";
 import { generationRequests } from "./generation-requests";
 import { models } from "./models";
@@ -18,6 +18,16 @@ export const tracks = pgTable(
       .references(() => models.id, { onDelete: "restrict" }),
     blindLabel: text("blind_label").notNull(),
     status: trackStatusEnum("status").notNull().default("pending"),
+    // Snapshot of models.currentVersion at the moment this track was
+    // requested. Deliberately denormalized: if the model gets upgraded
+    // later, this row must keep saying what actually generated it, not
+    // silently inherit the new version. This — not models.currentVersion —
+    // is the source of truth for historical analysis.
+    modelVersion: text("model_version"),
+    // The actual parameters sent to the model for this track (may differ
+    // from generationRequests.generationParameters, since not every model
+    // honors every requested knob, and models may have defaults/quirks).
+    generationParameters: jsonb("generation_parameters"),
     // Object storage key (e.g. R2/S3), populated once generation succeeds.
     // The storage package owns the bucket/client; this column is just the pointer.
     audioObjectKey: text("audio_object_key"),

@@ -9,6 +9,12 @@ export const models = pgTable("models", {
   slug: text("slug").notNull().unique(),
   displayName: text("display_name").notNull(),
   provider: text("provider").notNull(),
+  // Informational only — "the version we currently point new generations
+  // at." NOT the source of truth for what produced a given historical
+  // track (a model can be upgraded after a track was generated). The
+  // historical record lives on tracks.modelVersion, captured at generation
+  // time, so old rows never get silently reinterpreted as a newer version.
+  currentVersion: text("current_version"),
   active: boolean("active").notNull().default(true),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
