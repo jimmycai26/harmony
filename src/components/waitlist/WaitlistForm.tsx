@@ -16,6 +16,32 @@ const HYPE_LINES = [
 
 const CONFETTI_COLORS = [TRACK_HEX.A, TRACK_HEX.B, TRACK_HEX.C, TRACK_HEX.D, "var(--accent)", "var(--secondary)"];
 
+const AVATAR_VARIANTS = [
+  { letter: "A", variant: "headphones" },
+  { letter: "B", variant: "vinyl" },
+  { letter: "C", variant: "equalizer" },
+  { letter: "D", variant: "note" },
+] as const;
+
+const FEATURE_PILLS = [
+  { label: "Blind judging", color: TRACK_HEX.A },
+  { label: "100% free", color: TRACK_HEX.B },
+  { label: "Keep the winner", color: TRACK_HEX.D },
+];
+
+function FeaturePills() {
+  return (
+    <div className="wl-pills">
+      {FEATURE_PILLS.map((it) => (
+        <span className="wl-pill" key={it.label}>
+          <span className="wl-pill-dot" style={{ background: it.color }} />
+          {it.label}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 interface ConfettiPiece {
   id: number;
   tx: number;
@@ -161,16 +187,21 @@ export function WaitlistForm({ initialCount }: WaitlistFormProps) {
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
         />
-        <button type="submit" className="wl-submit" disabled={submitting || !email.trim()}>
-          <span className="wl-submit-icon">{submitting ? <span className="wl-spinner" /> : "▶"}</span>
-          <span>{submitting ? "Joining…" : "Join waitlist"}</span>
-        </button>
+        <span className="wl-submit-shell">
+          <button type="submit" className="wl-submit" disabled={submitting || !email.trim()}>
+            <span className="wl-submit-icon">{submitting ? <span className="wl-spinner" /> : "▶"}</span>
+            <span>{submitting ? "Joining…" : "Join waitlist"}</span>
+          </button>
+        </span>
       </form>
       <div className="wl-error">{error}</div>
+
+      <FeaturePills />
+
       <div className="wl-proof">
         <span className="wl-avatars">
-          {(["A", "B", "C", "D"] as const).map((t, i) => (
-            <ListenerAvatar key={t} color={TRACK_HEX[t]} delayMs={i * 260} />
+          {AVATAR_VARIANTS.map((a, i) => (
+            <ListenerAvatar key={a.letter} color={TRACK_HEX[a.letter]} variant={a.variant} delayMs={i * 260} />
           ))}
         </span>
         <span>
