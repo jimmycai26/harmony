@@ -6,7 +6,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 96px 24px 64px;
+  padding: 56px 24px 40px;
   background: var(--surface-page);
 }
 
@@ -91,7 +91,7 @@
   justify-content: center;
   gap: 3px;
   height: 30px;
-  margin: 2px 0 32px;
+  margin: 2px 0 20px;
   opacity: 0.6;
 }
 .wl-waveform i {
@@ -129,7 +129,7 @@
   align-items: center;
   justify-content: center;
   gap: 4px;
-  margin-bottom: 28px;
+  margin-bottom: 20px;
   border: 1px solid transparent;
   background:
     linear-gradient(var(--surface-card), var(--surface-card)) padding-box,
@@ -161,7 +161,7 @@
   letter-spacing: var(--tracking-widest);
   text-transform: uppercase;
   color: var(--text-faint);
-  margin-bottom: 18px;
+  margin-bottom: 14px;
 }
 .wl-eyebrow-line {
   width: 40px;
@@ -182,7 +182,7 @@
   font-size: clamp(48px, 9vw, 92px);
   line-height: 1;
   letter-spacing: -0.03em;
-  margin: 0 0 20px;
+  margin: 0 0 14px;
   background: linear-gradient(110deg, var(--track-a), var(--track-c) 30%, var(--track-b) 60%, var(--track-d) 85%, var(--track-a));
   background-size: 220% auto;
   -webkit-background-clip: text;
@@ -196,7 +196,7 @@
   font-size: var(--text-md);
   line-height: 1.5;
   max-width: 48ch;
-  margin: 0 0 16px;
+  margin: 0 0 12px;
 }
 
 .wl-pills {
@@ -205,7 +205,7 @@
   justify-content: center;
   flex-wrap: wrap;
   row-gap: 8px;
-  margin: 18px 0 6px;
+  margin: 12px 0 4px;
 }
 .wl-pill {
   display: inline-flex;
@@ -264,82 +264,6 @@
   color: var(--text-faint);
 }
 
-@keyframes wl-sheen {
-  0% { left: -60%; }
-  55%, 100% { left: 130%; }
-}
-@keyframes wl-ring-spin {
-  to { transform: rotate(360deg); }
-}
-.wl-submit-shell {
-  position: relative;
-  flex-shrink: 0;
-  border-radius: var(--radius-pill);
-}
-.wl-submit-shell::before {
-  content: "";
-  position: absolute;
-  inset: -4px;
-  border-radius: inherit;
-  background: conic-gradient(from 0deg, var(--track-a), var(--track-c), var(--track-b), var(--track-d), var(--track-a));
-  filter: blur(9px);
-  opacity: 0.45;
-  animation: wl-ring-spin 5s linear infinite;
-  transition: opacity var(--duration-slow) var(--ease-out);
-  z-index: 0;
-}
-.wl-submit-shell:hover::before {
-  opacity: 0.95;
-}
-.wl-submit-shell:has(.wl-submit:disabled)::before {
-  opacity: 0.2;
-  animation-play-state: paused;
-}
-.wl-submit {
-  position: relative;
-  z-index: 1;
-  overflow: hidden;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  border: none;
-  cursor: pointer;
-  background: var(--black-0);
-  color: var(--text-heading);
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: var(--text-sm);
-  letter-spacing: -0.01em;
-  padding: 12px 22px;
-  border-radius: var(--radius-pill);
-  transition: background var(--duration-base) var(--ease-out), transform var(--duration-fast) var(--ease-out), opacity var(--duration-base) var(--ease-out);
-}
-.wl-submit:hover:not(:disabled) {
-  background: var(--black-1);
-}
-.wl-submit:active:not(:disabled) { transform: scale(var(--press-scale)); }
-.wl-submit:disabled { opacity: 0.6; cursor: not-allowed; }
-.wl-submit::after {
-  content: "";
-  position: absolute;
-  top: -40%;
-  left: -60%;
-  width: 34%;
-  height: 180%;
-  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.4), transparent);
-  transform: skewX(-18deg);
-  animation: wl-sheen 3.2s var(--ease-in-out) 900ms infinite;
-}
-.wl-submit-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 9px;
-  transition: transform var(--duration-base) var(--ease-out);
-}
-.wl-submit:hover:not(:disabled) .wl-submit-icon {
-  transform: translateX(2px) scale(1.1);
-}
 .wl-spinner {
   width: 12px;
   height: 12px;
@@ -364,7 +288,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-top: 20px;
+  margin-top: 14px;
   font-family: var(--font-mono);
   font-size: var(--text-xs);
   color: var(--text-faint);

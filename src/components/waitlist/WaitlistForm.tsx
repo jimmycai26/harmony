@@ -1,8 +1,10 @@
 "use client";
 import React from "react";
+import { ArrowUpRight } from "lucide-react";
 import { ListenerAvatar } from "@/components/waitlist/ListenerAvatar";
 import { Badge } from "@/components/ui/Badge";
 import { TRACK_HEX } from "@/lib/trackColors";
+import { cn } from "@/lib/utils";
 
 export interface WaitlistFormProps {
   initialCount: number;
@@ -24,8 +26,8 @@ const AVATAR_VARIANTS = [
 ] as const;
 
 const FEATURE_PILLS = [
-  { label: "Blind judging", color: TRACK_HEX.A },
   { label: "100% free", color: TRACK_HEX.B },
+  { label: "Blind judging", color: TRACK_HEX.A },
   { label: "Learns your taste", color: TRACK_HEX.C },
   { label: "Keep the winner", color: TRACK_HEX.D },
 ];
@@ -188,12 +190,38 @@ export function WaitlistForm({ initialCount }: WaitlistFormProps) {
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
         />
-        <span className="wl-submit-shell">
-          <button type="submit" className="wl-submit" disabled={submitting || !email.trim()}>
-            <span className="wl-submit-icon">{submitting ? <span className="wl-spinner" /> : "▶"}</span>
-            <span>{submitting ? "Joining…" : "Join waitlist"}</span>
-          </button>
-        </span>
+        <button
+          type="submit"
+          disabled={submitting}
+          className={cn(
+            "group relative h-10 shrink-0 overflow-hidden rounded-pill px-4",
+            "bg-zinc-900",
+            "transition-all duration-200",
+            "disabled:cursor-not-allowed disabled:opacity-70",
+          )}
+        >
+          {/* Gradient background effect */}
+          <div
+            className={cn(
+              "absolute inset-0",
+              "bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500",
+              "opacity-40 group-hover:opacity-80",
+              "blur transition-opacity duration-500",
+            )}
+          />
+
+          {/* Content */}
+          <div className="relative flex items-center justify-center gap-2">
+            {submitting ? (
+              <span className="wl-spinner" />
+            ) : (
+              <>
+                <span className="font-display text-sm font-bold text-white">Join waitlist</span>
+                <ArrowUpRight className="h-3.5 w-3.5 text-white/90" />
+              </>
+            )}
+          </div>
+        </button>
       </form>
       <div className="wl-error">{error}</div>
 
