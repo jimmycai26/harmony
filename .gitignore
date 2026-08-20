@@ -36,6 +36,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# local waitlist signups — never commit real emails
+/data/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
