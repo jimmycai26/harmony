@@ -103,7 +103,7 @@ export default async function WaitlistPage() {
 
         <Waveform />
 
-        <div className="rise d4" style={{ width: "100%", display: "flex", flexDirection: "column", alignItems: "center" }}>
+        <div className="rise d4 flex w-full flex-col items-center">
           <WaitlistForm initialCount={count} />
         </div>
       </div>

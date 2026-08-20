@@ -1,62 +1,39 @@
-"use client";
-import React from "react";
+import type { ReactNode } from "react";
+import { cn } from "@/lib/utils";
 
 const sizes = {
-  sm: { padding: "8px 14px", fontSize: "var(--text-sm)" },
-  md: { padding: "11px 20px", fontSize: "var(--text-base)" },
-  lg: { padding: "14px 26px", fontSize: "var(--text-md)" },
+  sm: "px-3.5 py-2 text-sm",
+  md: "px-5 py-[11px] text-base",
+  lg: "px-[26px] py-3.5 text-md",
 };
+
 const variants = {
-  primary: { background: "var(--accent)", color: "#0E0C0A", border: "1px solid transparent" },
-  secondary: { background: "var(--surface-card)", color: "var(--text-heading)", border: "1px solid var(--border-strong)" },
-  ghost: { background: "transparent", color: "var(--text-heading)", border: "1px solid transparent" },
-  danger: { background: "var(--danger)", color: "#0E0C0A", border: "1px solid transparent" },
+  primary: "border border-transparent bg-accent text-[#0E0C0A] hover:bg-accent-hover active:bg-accent-press",
+  secondary: "border border-border-strong bg-surface-card text-text-heading hover:bg-surface-card-hover",
+  ghost: "border border-transparent bg-transparent text-text-heading",
+  danger: "border border-transparent bg-danger text-[#0E0C0A]",
 };
 
 export interface ButtonProps {
   variant?: keyof typeof variants;
   size?: keyof typeof sizes;
   disabled?: boolean;
-  icon?: React.ReactNode;
-  children: React.ReactNode;
+  icon?: ReactNode;
+  children: ReactNode;
   onClick?: () => void;
 }
 
 export function Button({ variant = "primary", size = "md", disabled = false, icon, children, onClick }: ButtonProps) {
-  const [hover, setHover] = React.useState(false);
-  const [active, setActive] = React.useState(false);
-  const v = variants[variant] || variants.primary;
-  let bg: string = v.background;
-  if (!disabled && variant === "primary") bg = active ? "var(--accent-press)" : hover ? "var(--accent-hover)" : v.background;
-  if (!disabled && variant === "secondary") bg = hover ? "var(--surface-card-hover)" : v.background;
   return (
     <button
       disabled={disabled}
       onClick={onClick}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => {
-        setHover(false);
-        setActive(false);
-      }}
-      onMouseDown={() => setActive(true)}
-      onMouseUp={() => setActive(false)}
-      style={{
-        fontFamily: "var(--font-display)",
-        fontWeight: 600,
-        letterSpacing: "var(--tracking-tight)",
-        borderRadius: "var(--radius-sm)",
-        cursor: disabled ? "not-allowed" : "pointer",
-        display: "inline-flex",
-        alignItems: "center",
-        gap: "8px",
-        transition:
-          "transform var(--duration-fast) var(--ease-out), background var(--duration-base) var(--ease-out), opacity var(--duration-base) var(--ease-out)",
-        opacity: disabled ? 0.4 : 1,
-        transform: active && !disabled ? "scale(var(--press-scale))" : "scale(1)",
-        ...sizes[size],
-        ...v,
-        background: bg,
-      }}
+      className={cn(
+        "inline-flex items-center gap-2 rounded-sm font-display font-semibold tracking-[-0.02em] transition-[background,opacity,transform] duration-[120ms] ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.97]",
+        disabled ? "cursor-not-allowed opacity-40" : "cursor-pointer",
+        sizes[size],
+        variants[variant],
+      )}
     >
       {icon}
       {children}

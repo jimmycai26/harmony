@@ -1,5 +1,5 @@
-"use client";
-import React from "react";
+import { Fragment } from "react";
+import { cn } from "@/lib/utils";
 
 export interface StepBarProps {
   steps: string[];
@@ -10,50 +10,34 @@ export interface StepBarProps {
 
 export function StepBar({ steps, activeIndex, unlockedCount, onStepClick }: StepBarProps) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: "0", fontFamily: "var(--font-display)" }}>
+    <div className="flex items-center font-display">
       {steps.map((label, i) => {
         const unlocked = i <= unlockedCount;
         const isActive = i === activeIndex;
         return (
-          <React.Fragment key={label}>
+          <Fragment key={label}>
             <button
               disabled={!unlocked}
               onClick={() => unlocked && onStepClick?.(i)}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                border: "none",
-                background: "transparent",
-                cursor: unlocked ? "pointer" : "not-allowed",
-                padding: "6px 4px",
-                opacity: unlocked ? 1 : 0.35,
-              }}
+              className={cn(
+                "flex items-center gap-2 border-none bg-transparent px-1 py-1.5",
+                unlocked ? "cursor-pointer opacity-100" : "cursor-not-allowed opacity-35",
+              )}
             >
               <span
-                style={{
-                  width: 26,
-                  height: 26,
-                  borderRadius: "50%",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontFamily: "var(--font-mono)",
-                  fontSize: "var(--text-xs)",
-                  fontWeight: 600,
-                  background: isActive ? "var(--accent)" : "var(--surface-card)",
-                  color: isActive ? "#0E0C0A" : unlocked ? "var(--text-heading)" : "var(--text-faint)",
-                  border: isActive ? "none" : "1px solid var(--border-strong)",
-                }}
+                className={cn(
+                  "flex h-[26px] w-[26px] items-center justify-center rounded-full font-mono text-xs font-semibold",
+                  isActive
+                    ? "border-none bg-accent text-[#0E0C0A]"
+                    : cn("border border-border-strong bg-surface-card", unlocked ? "text-text-heading" : "text-text-faint"),
+                )}
               >
                 {i + 1}
               </span>
-              <span style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: isActive ? "var(--text-heading)" : "var(--text-muted)" }}>
-                {label}
-              </span>
+              <span className={cn("text-sm font-semibold", isActive ? "text-text-heading" : "text-text-muted")}>{label}</span>
             </button>
-            {i < steps.length - 1 && <span style={{ width: 28, height: 1, background: "var(--border-strong)", margin: "0 4px" }} />}
-          </React.Fragment>
+            {i < steps.length - 1 && <span className="mx-1 h-px w-7 bg-border-strong" />}
+          </Fragment>
         );
       })}
     </div>

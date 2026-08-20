@@ -7,6 +7,7 @@ import { getLayers } from "@/lib/api/client";
 import type { Genre, Placement, PlacementEntry, Scope, Stem, TrackLetter } from "@/lib/api/types";
 import { genreLabel, scopeLabel } from "@/lib/scopeGenre";
 import { TRACK_COLORS, TRACK_HEX } from "@/lib/trackColors";
+import { cn } from "@/lib/utils";
 
 export interface ResultsScreenProps {
   placement: Placement;
@@ -20,28 +21,20 @@ export interface ResultsScreenProps {
 function StemRow({ trackLetter, stem, dimmed, onSolo, solo }: { trackLetter: TrackLetter; stem: Stem; dimmed: boolean; solo: boolean; onSolo: () => void }) {
   const [playing, setPlaying] = React.useState(false);
   return (
-    <div className="layer-row" style={{ opacity: dimmed ? 0.32 : 1 }}>
+    <div className={cn("layer-row", dimmed ? "opacity-32" : "opacity-100")}>
       <button
         onClick={onSolo}
+        className="w-[66px] shrink-0 cursor-pointer rounded-pill border px-0 py-1.5 font-mono text-xs font-semibold tracking-[0.04em]"
         style={{
-          width: 66,
-          flexShrink: 0,
           background: solo ? TRACK_COLORS[trackLetter] : "transparent",
           color: solo ? "#0E0C0A" : "var(--text-muted)",
-          border: `1px solid ${solo ? TRACK_HEX[trackLetter] : "var(--border-strong)"}`,
-          borderRadius: "var(--radius-pill)",
-          padding: "6px 0",
-          cursor: "pointer",
-          fontFamily: "var(--font-mono)",
-          fontSize: "var(--text-xs)",
-          fontWeight: 600,
-          letterSpacing: "var(--tracking-wide)",
+          borderColor: solo ? TRACK_HEX[trackLetter] : "var(--border-strong)",
         }}
       >
         SOLO
       </button>
-      <span style={{ width: 68, flexShrink: 0, fontFamily: "var(--font-display)", fontWeight: 600, color: "var(--text-heading)" }}>{stem.label}</span>
-      <div style={{ flex: 1, minWidth: 0 }}>
+      <span className="w-[68px] shrink-0 font-display font-semibold text-text-heading">{stem.label}</span>
+      <div className="min-w-0 flex-1">
         <WaveformPlayer src={stem.url} playing={playing && !dimmed} color={TRACK_COLORS[trackLetter]} height={34} onTogglePlay={() => setPlaying((p) => !p)} />
       </div>
       <a className="dl" href={stem.url} download={`Track ${trackLetter} - ${stem.label}.wav`}>
@@ -56,38 +49,29 @@ function LadderRow({ rank, entry, audioUrl, revealed }: { rank: number; entry: P
   const letter = entry.track.letter;
   return (
     <div className="ladder-row" style={{ "--tc": TRACK_HEX[letter] } as React.CSSProperties}>
-      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-        <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-sm)", color: "var(--text-faint)", width: 18 }}>{rank}</span>
+      <div className="flex items-center gap-3.5">
+        <span className="w-[18px] font-mono text-sm text-text-faint">{rank}</span>
         <span
-          style={{
-            width: 26,
-            height: 26,
-            borderRadius: "50%",
-            background: TRACK_COLORS[letter],
-            color: "#0E0C0A",
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontFamily: "var(--font-mono)",
-            fontSize: 11,
-            fontWeight: 700,
-            flexShrink: 0,
-          }}
+          className="inline-flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-full font-mono text-[11px] font-bold text-[#0E0C0A]"
+          style={{ background: TRACK_COLORS[letter] }}
         >
           {letter}
         </span>
-        <div style={{ width: 168, flexShrink: 0 }}>
-          <div style={{ fontFamily: "var(--font-display)", fontWeight: 600, color: "var(--text-heading)", opacity: revealed ? 1 : 0.25, transition: "opacity 500ms var(--ease-out)" }}>
+        <div className="w-[168px] shrink-0">
+          <div
+            className={cn(
+              "font-display font-semibold text-text-heading transition-opacity duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]",
+              revealed ? "opacity-100" : "opacity-25",
+            )}
+          >
             {revealed ? entry.model.name : `Track ${letter}`}
           </div>
         </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
+        <div className="min-w-0 flex-1">
           {audioUrl ? (
             <WaveformPlayer src={audioUrl} playing={playing} color={TRACK_COLORS[letter]} height={36} onTogglePlay={() => setPlaying((p) => !p)} />
           ) : (
-            <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-xs)", color: "var(--text-faint)" }}>
-              This model didn&rsquo;t finish generating — no audio.
-            </span>
+            <span className="font-mono text-xs text-text-faint">This model didn&rsquo;t finish generating — no audio.</span>
           )}
         </div>
         {audioUrl && (
@@ -135,45 +119,37 @@ export function ResultsScreen({ placement, prompt, scope, genre, trackAudioUrls,
   }
 
   return (
-    <div style={{ position: "relative", overflow: "hidden" }}>
+    <div className="relative overflow-hidden">
       <div className="ambient-orange" style={{ background: `radial-gradient(760px 360px at 50% 0%, ${TRACK_HEX[winner.track.letter]}2E, transparent 70%)` }} />
-      <div style={{ maxWidth: 860, margin: "0 auto", padding: "44px 24px 96px", fontFamily: "var(--font-body)", position: "relative" }}>
+      <div className="relative mx-auto max-w-[860px] px-6 pt-11 pb-24 font-body">
         <div className="eyebrow">The blind is off</div>
-        <h1 className="rise" style={{ fontFamily: "var(--font-display)", fontSize: "var(--text-3xl)", color: "var(--text-heading)", letterSpacing: "-0.03em", marginBottom: 6 }}>
+        <h1 className="rise mb-1.5 font-display text-3xl tracking-[-0.03em] text-text-heading">
           Your track is{" "}
-          <span style={{ color: TRACK_COLORS[winner.track.letter], opacity: reveal ? 1 : 0, transition: "opacity 500ms var(--ease-out)" }}>
+          <span
+            className={cn("transition-opacity duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]", reveal ? "opacity-100" : "opacity-0")}
+            style={{ color: TRACK_COLORS[winner.track.letter] }}
+          >
             {winner.model.name}
           </span>
         </h1>
-        <p style={{ color: "var(--text-muted)", marginBottom: 26, maxWidth: "62ch" }}>
+        <p className="mb-[26px] max-w-[62ch] text-text-muted">
           Take the master, pull it apart into stems, or grab any of the runners-up — everything you heard is yours to keep.
         </p>
 
         <div className="winner-card rise d1" style={{ "--tc": TRACK_HEX[winner.track.letter] } as React.CSSProperties}>
-          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, marginBottom: 16 }}>
-            <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
+          <div className="mb-4 flex items-start justify-between gap-4">
+            <div className="flex items-center gap-3.5">
               <span
-                style={{
-                  width: 38,
-                  height: 38,
-                  borderRadius: "50%",
-                  background: TRACK_COLORS[winner.track.letter],
-                  color: "#0E0C0A",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontFamily: "var(--font-mono)",
-                  fontWeight: 700,
-                  fontSize: "var(--text-md)",
-                }}
+                className="inline-flex h-[38px] w-[38px] items-center justify-center rounded-full font-mono text-md font-bold text-[#0E0C0A]"
+                style={{ background: TRACK_COLORS[winner.track.letter] }}
               >
                 {winner.track.letter}
               </span>
               <div>
-                <div style={{ fontFamily: "var(--font-display)", fontSize: "var(--text-xl)", color: "var(--text-heading)", fontWeight: 700, letterSpacing: "-0.02em" }}>
+                <div className="font-display text-xl font-bold tracking-[-0.02em] text-text-heading">
                   {reveal ? winner.model.name : `Track ${winner.track.letter}`}
                 </div>
-                <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-xs)", color: "var(--text-faint)", letterSpacing: "var(--tracking-wide)", marginTop: 3 }}>
+                <div className="mt-[3px] font-mono text-xs tracking-[0.04em] text-text-faint">
                   WON THE BRACKET · {scopeLabel(scope).toUpperCase()} · {genreLabel(genre).toUpperCase()}
                 </div>
               </div>
@@ -182,7 +158,10 @@ export function ResultsScreen({ placement, prompt, scope, genre, trackAudioUrls,
           </div>
 
           {prompt && (
-            <p style={{ color: "var(--text-muted)", fontSize: "var(--text-sm)", borderLeft: `2px solid ${TRACK_COLORS[winner.track.letter]}`, paddingLeft: 12, margin: "0 0 16px" }}>
+            <p
+              className="mt-0 mb-4 pl-3 text-sm text-text-muted"
+              style={{ borderLeft: `2px solid ${TRACK_COLORS[winner.track.letter]}` }}
+            >
               &ldquo;{prompt}&rdquo;
             </p>
           )}
@@ -191,7 +170,7 @@ export function ResultsScreen({ placement, prompt, scope, genre, trackAudioUrls,
             <WaveformPlayer src={winnerAudio} playing={playingWinner} color={TRACK_COLORS[winner.track.letter]} height={72} meter onTogglePlay={() => setPlayingWinner((p) => !p)} />
           )}
 
-          <div style={{ display: "flex", gap: 10, marginTop: 18, flexWrap: "wrap" }}>
+          <div className="mt-[18px] flex flex-wrap gap-2.5">
             {winnerAudio && (
               <a href={winnerAudio} download={`Track ${winner.track.letter} - master.wav`}>
                 <Button>↓ Download master</Button>
@@ -203,8 +182,8 @@ export function ResultsScreen({ placement, prompt, scope, genre, trackAudioUrls,
           </div>
 
           {stemsOpen && (
-            <div className="rise" style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 10, borderTop: "1px solid var(--border-default)", paddingTop: 16 }}>
-              {stemsLoading && <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-xs)", color: "var(--text-faint)" }}>Splitting stems…</span>}
+            <div className="rise mt-4 flex flex-col gap-2.5 border-t border-border-default pt-4">
+              {stemsLoading && <span className="font-mono text-xs text-text-faint">Splitting stems…</span>}
               {stems?.map((s) => (
                 <StemRow
                   key={s.type}
@@ -219,17 +198,17 @@ export function ResultsScreen({ placement, prompt, scope, genre, trackAudioUrls,
           )}
         </div>
 
-        <div className="rise d2" style={{ marginTop: 40 }}>
+        <div className="rise d2 mt-10">
           <div className="eyebrow">The full ladder · everything you heard</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div className="flex flex-col gap-3">
             {runnersUp.map((entry, i) => (
               <LadderRow key={entry.track.id} rank={i + 2} entry={entry} audioUrl={trackAudioUrls[entry.track.letter]} revealed={reveal} />
             ))}
           </div>
         </div>
 
-        <div className="rise d4" style={{ marginTop: 40, display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
-          <div className="cta-glow" style={{ borderRadius: "var(--radius-sm)" }}>
+        <div className="rise d4 mt-10 flex flex-wrap items-center justify-end gap-4">
+          <div className="cta-glow rounded-sm">
             <Button size="lg" onClick={onRestart}>
               Run it again →
             </Button>

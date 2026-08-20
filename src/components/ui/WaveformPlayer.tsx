@@ -27,6 +27,8 @@ export function WaveformPlayer({ src, label, playing, onTogglePlay, color = "var
 
   React.useEffect(() => {
     if (!containerRef.current || !wrapRef.current) return;
+    // color lives on the wrapper via inline style specifically so this resolves
+    // any var() reference to a concrete value wavesurfer's canvas can use.
     const resolvedColor = getComputedStyle(wrapRef.current).color;
     const idleColor = getComputedStyle(document.documentElement).getPropertyValue("--border-strong").trim() || "#2A2622";
 
@@ -65,54 +67,32 @@ export function WaveformPlayer({ src, label, playing, onTogglePlay, color = "var
   }, [playing]);
 
   return (
-    <div ref={wrapRef} style={{ display: "flex", alignItems: "center", gap: "14px", fontFamily: "var(--font-body)", color }}>
+    <div ref={wrapRef} className="flex items-center gap-3.5 font-body" style={{ color }}>
       <button
         onClick={onTogglePlay}
         aria-label={wsPlaying ? "Pause" : "Play"}
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-none text-sm transition-[background,box-shadow] duration-[200ms] ease-[cubic-bezier(0.16,1,0.3,1)]"
         style={{
-          width: 44,
-          height: 44,
-          borderRadius: "50%",
-          border: "none",
           cursor: "pointer",
-          flexShrink: 0,
           background: wsPlaying ? color : "var(--border-strong)",
           color: wsPlaying ? "#0E0C0A" : "var(--warm-white)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: 14,
           boxShadow: wsPlaying ? `0 0 26px color-mix(in srgb, ${color} 45%, transparent)` : "none",
-          transition: "background var(--duration-base) var(--ease-out), box-shadow var(--duration-base) var(--ease-out)",
         }}
       >
         {wsPlaying ? "❙❙" : "▶"}
       </button>
-      <div ref={containerRef} style={{ flex: "1 1 0", minWidth: 0, cursor: "pointer" }} />
+      <div ref={containerRef} className="min-w-0 flex-1 cursor-pointer" />
       {meter && (
         <span
-          style={{
-            width: 4,
-            height: Math.min(34, height),
-            borderRadius: 2,
-            background: "color-mix(in srgb, var(--border-strong) 70%, transparent)",
-            overflow: "hidden",
-            flexShrink: 0,
-            position: "relative",
-          }}
+          className="relative shrink-0 overflow-hidden rounded-[2px] bg-[color-mix(in_srgb,var(--border-strong)_70%,transparent)]"
+          style={{ width: 4, height: Math.min(34, height) }}
         >
           <i className={`wf-meter-fill${wsPlaying ? " is-playing" : ""}`} />
         </span>
       )}
       <span
-        style={{
-          fontFamily: "var(--font-mono)",
-          fontSize: "var(--text-xs)",
-          color: "var(--text-faint)",
-          flexShrink: 0,
-          minWidth: label ? 38 : 0,
-          textAlign: "right",
-        }}
+        className="shrink-0 text-right font-mono text-xs text-text-faint"
+        style={{ minWidth: label ? 38 : 0 }}
       >
         {label ?? (duration ? fmt(currentTime || duration) : "")}
       </span>

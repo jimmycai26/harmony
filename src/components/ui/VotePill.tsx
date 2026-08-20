@@ -1,5 +1,3 @@
-"use client";
-import React from "react";
 import type { Vote } from "@/lib/api/types";
 
 export interface VotePillProps {
@@ -28,38 +26,21 @@ export function VotePill({
   ];
   const colorFor = (k: Vote) => (k === "tie" ? "var(--secondary)" : k === "left" ? leftColor : rightColor);
   return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", fontFamily: "var(--font-body)" }}>
-      <span style={{ fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>{axis}</span>
-      <div
-        style={{
-          display: "flex",
-          gap: "4px",
-          background: "var(--surface-card)",
-          padding: "3px",
-          borderRadius: "var(--radius-pill)",
-          border: "1px solid var(--border-default)",
-        }}
-      >
+    <div className="flex items-center justify-between gap-3 font-body">
+      <span className="text-sm text-text-muted">{axis}</span>
+      <div className="flex gap-1 rounded-pill border border-border-default bg-surface-card p-[3px]">
         {opts.map((o) => {
           const active = value === o.key;
+          const color = colorFor(o.key);
           return (
             <button
               key={o.key}
               onClick={() => onVote?.(o.key)}
+              className="min-w-[34px] cursor-pointer rounded-pill border-none px-3.5 py-1.5 font-mono text-xs font-semibold tracking-[0.04em] transition-all duration-[120ms] ease-[cubic-bezier(0.16,1,0.3,1)]"
               style={{
-                border: "none",
-                cursor: "pointer",
-                padding: "6px 14px",
-                borderRadius: "var(--radius-pill)",
-                fontFamily: "var(--font-mono)",
-                fontSize: "var(--text-xs)",
-                fontWeight: 600,
-                letterSpacing: "var(--tracking-wide)",
-                minWidth: 34,
-                background: active ? colorFor(o.key) : "transparent",
+                background: active ? color : "transparent",
                 color: active ? "#0E0C0A" : "var(--text-muted)",
-                boxShadow: active ? `0 0 18px ${colorFor(o.key)}55` : "none",
-                transition: "all var(--duration-fast) var(--ease-out)",
+                boxShadow: active ? `0 0 18px ${color}55` : "none",
               }}
             >
               {o.label}
