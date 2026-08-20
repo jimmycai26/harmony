@@ -46,7 +46,7 @@ async function writeAll(entries: Entry[]) {
 
 export async function addEmail(rawEmail: string): Promise<{ count: number; alreadyJoined: boolean }> {
   const email = rawEmail.trim().toLowerCase();
-  if (!EMAIL_RE.test(email)) throw new WaitlistError("That doesn't look like a valid email.");
+  if (!EMAIL_RE.test(email)) throw new WaitlistError("Please enter a valid email");
 
   const entries = await readAll();
   const alreadyJoined = entries.some((e) => e.email === email);

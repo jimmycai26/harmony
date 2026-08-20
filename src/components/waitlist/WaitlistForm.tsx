@@ -9,12 +9,6 @@ export interface WaitlistFormProps {
   initialCount: number;
 }
 
-const HYPE_LINES = [
-  "Get ready to trust your ears.",
-  "Four models. Zero bias. All yours.",
-  "Blind battles are coming for your playlist.",
-];
-
 const CONFETTI_COLORS = [TRACK_HEX.A, TRACK_HEX.B, TRACK_HEX.C, TRACK_HEX.D, "var(--accent)", "var(--secondary)"];
 
 const AVATAR_VARIANTS = [
@@ -105,7 +99,6 @@ export function WaitlistForm({ initialCount }: WaitlistFormProps) {
   const [count, setCount] = React.useState(initialCount);
   const displayCount = useCountUp(count);
   const [confetti, setConfetti] = React.useState<ConfettiPiece[]>([]);
-  const [hypeLine, setHypeLine] = React.useState("");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -120,16 +113,15 @@ export function WaitlistForm({ initialCount }: WaitlistFormProps) {
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error ?? "Something went wrong — try again.");
+        setError(data.error ?? "Something went wrong");
         return;
       }
       setCount(data.count);
       setAlreadyJoined(data.alreadyJoined);
       setConfetti(makeConfetti());
-      setHypeLine(HYPE_LINES[Math.floor(Math.random() * HYPE_LINES.length)]);
       setJoined(true);
     } catch {
-      setError("Couldn't reach the server — try again.");
+      setError("Couldn't connect");
     } finally {
       setSubmitting(false);
     }
@@ -166,8 +158,9 @@ export function WaitlistForm({ initialCount }: WaitlistFormProps) {
             <Badge tone="accent">#{displayCount} in line</Badge>
           </div>
         )}
-        <h2 className="wl-success-title">{alreadyJoined ? "You're already on the list." : "You're on the list."}</h2>
-        <p className="wl-success-hype">{hypeLine}</p>
+        <h2 className="wl-success-title">
+          {alreadyJoined ? "You're already on the early access list." : "We’ve added you to our early access."}
+        </h2>
         <p className="wl-success-sub">We&rsquo;ll email you the moment early access opens — free generations, free voting, no catch.</p>
       </div>
     );
