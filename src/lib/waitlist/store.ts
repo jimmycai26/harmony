@@ -1,6 +1,6 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import { list, put } from "@vercel/blob";
+import { get, put } from "@vercel/blob";
 
 // Waitlist store — a single JSON "file" of entries, backed by whichever
 // storage is actually persistent in the current environment:
@@ -15,6 +15,9 @@ import { list, put } from "@vercel/blob";
 const DATA_DIR = path.join(process.cwd(), "data");
 const FILE = path.join(DATA_DIR, "waitlist.json");
 const BLOB_PATHNAME = "waitlist/emails.json";
+// Must match how the connected Blob store is actually configured (Vercel
+// dashboard → Storage → store settings) — passing the wrong one throws.
+const BLOB_ACCESS = "private";
 
 const USE_BLOB = !!process.env.BLOB_READ_WRITE_TOKEN;
 
@@ -40,15 +43,13 @@ export class WaitlistError extends Error {
 
 async function readAll(): Promise<Entry[]> {
   if (USE_BLOB) {
-    // head() needs a blob's full URL, which a fresh serverless invocation
-    // has no way to know in advance — list() is the correct way to look a
-    // blob up by its pathname.
-    const { blobs } = await list({ prefix: BLOB_PATHNAME, limit: 1 });
-    const match = blobs.find((b) => b.pathname === BLOB_PATHNAME);
-    if (!match) return [];
-    const res = await fetch(match.url, { cache: "no-store" });
-    if (!res.ok) return [];
-    return (await res.json()) as Entry[];
+    // get() looks the blob up by pathname directly and handles the
+    // Authorization header a private store requires — a raw fetch() to the
+    // blob's URL would 401/403 for a private store with no way to attach
+    // the token to a URL string built by hand.
+    const result = await get(BLOB_PATHNAME, { access: BLOB_ACCESS, useCache: false });
+    if (!result) return [];
+    return (await new Response(result.stream).json()) as Entry[];
   }
 
   try {
@@ -64,12 +65,8 @@ async function writeAll(entries: Entry[]) {
   if (USE_BLOB) {
     // Fixed pathname + no random suffix so this is always the same "file" —
     // the standard Vercel Blob pattern for a single mutable JSON document.
-    // Note: Blob access is public-by-design (no private/auth mode) — the
-    // URL carries a per-store random hostname, not guessable, but anyone
-    // who obtains it can read it. Fine for a pre-launch waitlist; revisit
-    // if this list needs to stay strictly confidential later.
     await put(BLOB_PATHNAME, JSON.stringify(entries, null, 2), {
-      access: "public",
+      access: BLOB_ACCESS,
       addRandomSuffix: false,
       allowOverwrite: true,
       contentType: "application/json",
