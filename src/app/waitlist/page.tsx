@@ -38,6 +38,24 @@ function FloatingNotes() {
   );
 }
 
+function FeaturePills() {
+  const items = [
+    { label: "Blind judging", color: TRACK_HEX.A },
+    { label: "100% free", color: TRACK_HEX.B },
+    { label: "Keep the winner", color: TRACK_HEX.D },
+  ];
+  return (
+    <div className="wl-pills rise d3">
+      {items.map((it) => (
+        <span className="wl-pill" key={it.label}>
+          <span className="wl-pill-dot" style={{ background: it.color }} />
+          {it.label}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 function Waveform() {
   const bars = Array.from({ length: 28 }, (_, i) => {
     const peak = 30 + ((i * 53) % 62);
@@ -102,10 +120,9 @@ export default async function WaitlistPage() {
 
         <h1 className="wl-title rise d2">Harmony</h1>
 
-        <p className="wl-subtitle rise d3">
-          Four AI models generate your track from one prompt. You listen blind, vote head-to-head, and keep whatever wins —
-          free while we build the leaderboard.
-        </p>
+        <p className="wl-subtitle rise d3">Four AI models. One prompt. You judge them blind and keep the winner.</p>
+
+        <FeaturePills />
 
         <Waveform />
 
