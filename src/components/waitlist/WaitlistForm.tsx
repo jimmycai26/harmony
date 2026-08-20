@@ -1,6 +1,5 @@
 "use client";
 import React from "react";
-import { ArrowUpRight } from "lucide-react";
 import { ListenerAvatar } from "@/components/waitlist/ListenerAvatar";
 import { Badge } from "@/components/ui/Badge";
 import { TRACK_HEX } from "@/lib/trackColors";
@@ -167,7 +166,7 @@ export function WaitlistForm({ initialCount }: WaitlistFormProps) {
             <Badge tone="accent">#{displayCount} in line</Badge>
           </div>
         )}
-        <h2 className="wl-success-title">{alreadyJoined ? "You're already on the list." : "You're in."}</h2>
+        <h2 className="wl-success-title">{alreadyJoined ? "You're already on the list." : "You're on the list."}</h2>
         <p className="wl-success-hype">{hypeLine}</p>
         <p className="wl-success-sub">We&rsquo;ll email you the moment early access opens — free generations, free voting, no catch.</p>
       </div>
@@ -175,7 +174,7 @@ export function WaitlistForm({ initialCount }: WaitlistFormProps) {
   }
 
   return (
-    <div>
+    <div className="flex w-full flex-col items-center">
       <form className={`wl-form${focused ? " is-focused" : ""}${error ? " has-error" : ""}`} onSubmit={handleSubmit}>
         <input
           type="email"
@@ -212,14 +211,7 @@ export function WaitlistForm({ initialCount }: WaitlistFormProps) {
 
           {/* Content */}
           <div className="relative flex items-center justify-center gap-2">
-            {submitting ? (
-              <span className="wl-spinner" />
-            ) : (
-              <>
-                <span className="font-display text-sm font-bold text-white">Join waitlist</span>
-                <ArrowUpRight className="h-3.5 w-3.5 text-white/90" />
-              </>
-            )}
+            {submitting ? <span className="wl-spinner" /> : <span className="font-display text-sm font-bold text-white">Join waitlist</span>}
           </div>
         </button>
       </form>
