@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import type { CSSProperties } from "react";
-import Link from "next/link";
 import { WaitlistForm } from "@/components/waitlist/WaitlistForm";
 import { getCount } from "@/lib/waitlist/store";
 import { TRACK_HEX } from "@/lib/trackColors";
@@ -82,10 +81,6 @@ export default async function WaitlistPage() {
       <div className="wl-glow-top" />
       <div className="wl-arc" />
       <FloatingNotes />
-
-      <Link href="/" className="wl-home-link">
-        <span className="wl-home-link-arrow">←</span> Harmony
-      </Link>
 
       <div className="wl-content">
         <div className="wl-mark rise">

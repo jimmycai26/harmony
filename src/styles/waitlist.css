@@ -10,38 +10,6 @@
   background: var(--surface-page);
 }
 
-.wl-home-link {
-  position: absolute;
-  top: 20px;
-  left: 20px;
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: var(--text-sm);
-  color: var(--text-faint);
-  letter-spacing: -0.02em;
-  z-index: 3;
-  padding: 9px 16px 9px 12px;
-  border-radius: var(--radius-pill);
-  border: 1px solid transparent;
-  transition: color var(--duration-base) var(--ease-out), border-color var(--duration-base) var(--ease-out), background var(--duration-base) var(--ease-out);
-}
-.wl-home-link:hover {
-  color: var(--text-heading);
-  border-color: var(--border-strong);
-  background: var(--surface-card);
-  text-decoration: none;
-}
-.wl-home-link-arrow {
-  display: inline-block;
-  transition: transform var(--duration-base) var(--ease-out);
-}
-.wl-home-link:hover .wl-home-link-arrow {
-  transform: translateX(-3px);
-}
-
 @keyframes wl-grid-pulse {
   0%, 100% { opacity: 0.5; }
   50% { opacity: 0.85; }
