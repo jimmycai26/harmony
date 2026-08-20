@@ -1,6 +1,6 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import { BlobNotFoundError, head, put } from "@vercel/blob";
+import { list, put } from "@vercel/blob";
 
 // Waitlist store — a single JSON "file" of entries, backed by whichever
 // storage is actually persistent in the current environment:
@@ -40,14 +40,13 @@ export class WaitlistError extends Error {
 
 async function readAll(): Promise<Entry[]> {
   if (USE_BLOB) {
-    let url: string;
-    try {
-      url = (await head(BLOB_PATHNAME)).url;
-    } catch (err) {
-      if (err instanceof BlobNotFoundError) return [];
-      throw err;
-    }
-    const res = await fetch(url, { cache: "no-store" });
+    // head() needs a blob's full URL, which a fresh serverless invocation
+    // has no way to know in advance — list() is the correct way to look a
+    // blob up by its pathname.
+    const { blobs } = await list({ prefix: BLOB_PATHNAME, limit: 1 });
+    const match = blobs.find((b) => b.pathname === BLOB_PATHNAME);
+    if (!match) return [];
+    const res = await fetch(match.url, { cache: "no-store" });
     if (!res.ok) return [];
     return (await res.json()) as Entry[];
   }
