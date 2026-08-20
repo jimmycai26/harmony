@@ -1,5 +1,6 @@
 "use client";
 import React from "react";
+import { ListenerAvatar } from "@/components/waitlist/ListenerAvatar";
 import { TRACK_HEX } from "@/lib/trackColors";
 
 export interface WaitlistFormProps {
@@ -94,16 +95,15 @@ export function WaitlistForm({ initialCount }: WaitlistFormProps) {
           onBlur={() => setFocused(false)}
         />
         <button type="submit" className="wl-submit" disabled={submitting || !email.trim()}>
+          <span className="wl-submit-icon">{submitting ? <span className="wl-spinner" /> : "▶"}</span>
           <span>{submitting ? "Joining…" : "Join waitlist"}</span>
         </button>
       </form>
       <div className="wl-error">{error}</div>
       <div className="wl-proof">
         <span className="wl-avatars">
-          {(["A", "B", "C", "D"] as const).map((t) => (
-            <span key={t} style={{ background: TRACK_HEX[t] }}>
-              {t}
-            </span>
+          {(["A", "B", "C", "D"] as const).map((t, i) => (
+            <ListenerAvatar key={t} color={TRACK_HEX[t]} delayMs={i * 260} />
           ))}
         </span>
         <span>

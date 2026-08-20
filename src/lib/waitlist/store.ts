@@ -16,6 +16,11 @@ interface Entry {
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// Seeded starting count for the displayed "N already on the list" — captain's
+// call, per-request. Real signups still add on top of this; drop it to 0
+// whenever the real count should stand on its own.
+const DISPLAY_COUNT_OFFSET = 101;
+
 export class WaitlistError extends Error {
   status: number;
   constructor(message: string, status = 400) {
@@ -49,9 +54,9 @@ export async function addEmail(rawEmail: string): Promise<{ count: number; alrea
     entries.push({ email, joinedAt: new Date().toISOString() });
     await writeAll(entries);
   }
-  return { count: entries.length, alreadyJoined };
+  return { count: entries.length + DISPLAY_COUNT_OFFSET, alreadyJoined };
 }
 
 export async function getCount(): Promise<number> {
-  return (await readAll()).length;
+  return (await readAll()).length + DISPLAY_COUNT_OFFSET;
 }
