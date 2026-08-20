@@ -26,6 +26,7 @@ const AVATAR_VARIANTS = [
 const FEATURE_PILLS = [
   { label: "Blind judging", color: TRACK_HEX.A },
   { label: "100% free", color: TRACK_HEX.B },
+  { label: "Learns your taste", color: TRACK_HEX.C },
   { label: "Keep the winner", color: TRACK_HEX.D },
 ];
 

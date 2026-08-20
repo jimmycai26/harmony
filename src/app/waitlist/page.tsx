@@ -102,7 +102,9 @@ export default async function WaitlistPage() {
 
         <h1 className="wl-title rise d2">Harmony</h1>
 
-        <p className="wl-subtitle rise d3">Four AI models turn one prompt into music — judge them blind, keep the winner.</p>
+        <p className="wl-subtitle rise d3">
+          Put the world&rsquo;s best AI music models head-to-head. Create, compare, and find your favorite — all for free.
+        </p>
 
         <Waveform />
 

@@ -227,7 +227,7 @@
   color: var(--text-muted);
   font-size: var(--text-md);
   line-height: 1.5;
-  max-width: 40ch;
+  max-width: 48ch;
   margin: 0 0 16px;
 }
 
